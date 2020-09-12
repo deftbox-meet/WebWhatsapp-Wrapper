@@ -19,6 +19,7 @@ from axolotl.kdf.hkdfv3 import HKDFv3
 from axolotl.util.byteutil import ByteUtil
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+from pyvirtualdisplay import Display
 from resizeimage import resizeimage
 from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException
@@ -173,19 +174,19 @@ class WhatsAPIDriver(object):
         self.driver.close()
 
     def __init__(
-        self,
-        client="firefox",
-        username="API",
-        proxy=None,
-        command_executor=None,
-        loadstyles=False,
-        profile=None,
-        headless=False,
-        autoconnect=True,
-        logger=None,
-        extra_params=None,
-        chrome_options=None,
-        executable_path=None,
+            self,
+            client="firefox",
+            username="API",
+            proxy=None,
+            command_executor=None,
+            loadstyles=False,
+            profile=None,
+            headless=False,
+            autoconnect=True,
+            logger=None,
+            extra_params=None,
+            chrome_options=None,
+            executable_path=None,
     ):
         """Initialises the webdriver"""
 
@@ -246,31 +247,47 @@ class WhatsAPIDriver(object):
                     capabilities=capabilities, options=options, **extra_params
                 )
 
+
         elif self.client == "chrome":
+
             self._profile = webdriver.ChromeOptions()
+
             if self._profile_path is not None:
-                self._profile.add_argument("user-data-dir=%s" % self._profile_path)
+                self._profile.add_argument("--user-data-dir=%s" % self._profile_path)
+
             if proxy is not None:
-                self._profile.add_argument("--proxy-server=%s" % proxy)
+                self._profile.add_argument('--proxy-server=%s' % proxy)
+
             if headless:
-                self._profile.add_argument("headless")
+                self.display = Display(visible=0, size=(1920, 1080)).start()
+
+                # self._profile.add_argument('--headless')
+
+                self._profile.add_argument('--disable-gpu')
+
+                self._profile.add_argument(
+
+                    '--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.149 Safari/537.36')
+
             if chrome_options is not None:
+
                 for option in chrome_options:
                     self._profile.add_argument(option)
-            self.logger.info("Starting webdriver")
-            self.driver = webdriver.Chrome(chrome_options=self._profile, **extra_params)
 
-        elif client == "remote":
-            if self._profile_path is not None:
-                self._profile = webdriver.FirefoxProfile(self._profile_path)
+            if executable_path is not None:
+
+                self.logger.info("Starting webdriver")
+
+                self.driver = webdriver.Chrome(executable_path=executable_path, chrome_options=self._profile,
+
+                                               **extra_params)
+
+
             else:
-                self._profile = webdriver.FirefoxProfile()
-            capabilities = DesiredCapabilities.FIREFOX.copy()
-            self.driver = webdriver.Remote(
-                command_executor=command_executor,
-                desired_capabilities=capabilities,
-                **extra_params,
-            )
+
+                self.logger.info("Starting webdriver")
+
+                self.driver = webdriver.Chrome(chrome_options=self._profile, **extra_params)
 
         else:
             self.logger.error("Invalid client: %s" % client)
@@ -395,7 +412,7 @@ class WhatsAPIDriver(object):
         return self.wapi_functions.getAllChatIds()
 
     def get_unread(
-        self, include_me=False, include_notifications=False, use_unread_count=False
+            self, include_me=False, include_notifications=False, use_unread_count=False
     ):
         """
         Fetches unread messages
@@ -430,7 +447,7 @@ class WhatsAPIDriver(object):
         return unread_messages
 
     def get_unread_messages_in_chat(
-        self, id, include_me=False, include_notifications=False
+            self, id, include_me=False, include_notifications=False
     ):
         """
         I fetch unread messages from an asked chat.
@@ -458,7 +475,7 @@ class WhatsAPIDriver(object):
     # get_unread_messages_in_chat()
 
     def get_all_messages_in_chat(
-        self, chat, include_me=False, include_notifications=False
+            self, chat, include_me=False, include_notifications=False
     ):
         """
         Fetches messages in chat
@@ -478,7 +495,7 @@ class WhatsAPIDriver(object):
             yield (factory_message(message, self))
 
     def get_all_message_ids_in_chat(
-        self, chat, include_me=False, include_notifications=False
+            self, chat, include_me=False, include_notifications=False
     ):
         """
         Fetches message ids in chat
@@ -854,7 +871,7 @@ class WhatsAPIDriver(object):
         :return:
         """
         number_status = self.wapi_functions.checkNumberStatus(number_id)
-        return NumberStatus(number_status, self)
+        return number_status
 
     def subscribe_new_messages(self, observer):
         self.wapi_functions.new_messages_observable.subscribe(observer)
